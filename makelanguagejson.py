@@ -7,16 +7,18 @@ import pandas as pd
 
 WORKING_DIR = os.path.dirname(os.path.realpath(__file__))
 
-EXTREMERORLS_IN_FILE = os.path.join(WORKING_DIR, "ExtremeRolesTransData.xlsx")
-EXTREMERORLS_OUT_FILE = os.path.join(WORKING_DIR, "ExtremeRoles", "Resources", "JsonData", "Language.json")
+EXTREMERORLS_IN_FILE = os.path.join(WORKING_DIR, 'ExtremeRolesTransData.xlsx')
+EXTREMERORLS_OUT_FILE = os.path.join(WORKING_DIR, 'ExtremeRoles', 'Resources', 'JsonData', 'Language.json')
 
-EXTREMESKIN_IN_FILE = os.path.join(WORKING_DIR, "ExtremeSkinsTransData.xlsx")
-EXTREMESKIN_OUT_FILE = os.path.join(WORKING_DIR, "ExtremeSkins", "Resources", "LangData", "stringData.json")
+EXTREMESKIN_IN_FILE = os.path.join(WORKING_DIR, 'ExtremeSkinsTransData.xlsx')
+EXTREMESKIN_OUT_FILE = os.path.join(WORKING_DIR, 'ExtremeSkins', 'Resources', 'LangData')
+
+DEFAULT_LANG_CSV = 'Japanese.csv'
 
 def is_require_update(new_json : Dict[str, str], output_file : str) -> bool:
 
   try:
-    with open(output_file, "r") as f:
+    with open(output_file, 'r') as f:
       old_json = json.load(f)
     old_json_str = json.dumps(old_json)
   except Exception:
@@ -51,7 +53,7 @@ def xlsx_to_json(file_name : str, output_file : str) -> None:
       for i, cell in enumerate(row[1:]):
         if cell.value:
           # I hate excel why did I do this to myself
-          data[str(i)] = cell.value.replace("\r", "").replace("_x000D_", "").replace("\\n", "\n")
+          data[str(i)] = cell.value.replace('\r', '').replace('_x000D_', '').replace('\\n', '\n')
 
       if data:
         xlsx_data[name] = data
@@ -60,10 +62,10 @@ def xlsx_to_json(file_name : str, output_file : str) -> None:
 
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
-    with open(output_file, "w") as f:
+    with open(output_file, 'w') as f:
       json.dump(xlsx_data, f, indent=4)
 
-def xlsx_to_lang_csv(file_name : str, output_dir : str):
+def create_all_trans_dict(file_name : str) -> Dict[str, Dict[str, str]]:
 
   xlsx = pd.read_excel(file_name, sheet_name=None)
 
@@ -92,8 +94,45 @@ def xlsx_to_lang_csv(file_name : str, output_dir : str):
 
         if not (header in all_trans_data):
           all_trans_data[header] = {}
-        cleaned_data = data.replace("\r", "").replace("_x000D_", "").replace("\\n", "<br>")
+        cleaned_data = data.replace('\r', '').replace('_x000D_', '').replace('\\n', '<br>')
         all_trans_data[header][value] = cleaned_data
+
+  return all_trans_data
+
+def no_trans_data_to_ja(output_dir : str) -> None:
+
+  ja_lang_file = os.path.join(output_dir, DEFAULT_LANG_CSV)
+  ja_lang_data = pd.read_csv(ja_lang_file, header=None, index_col=0)
+  ja_lang_dict = ja_lang_data.to_dict()[1]
+
+  for file in os.listdir(output_dir):
+
+    if not file.endswith('.csv') or file == DEFAULT_LANG_CSV:
+      continue
+
+    target_file = os.path.join(output_dir, file)
+    target_df = pd.read_csv(target_file, header=None, index_col=0)
+    check_dict = target_df.to_dict()[1]
+
+    is_add_new_data = False
+    for key, value in ja_lang_dict.items():
+
+      if key in check_dict:
+        continue
+      else:
+        check_dict[key] = f'!-NOTTRANS-!{value}'
+        is_add_new_data = True
+
+    if is_add_new_data:
+      output_df = pd.DataFrame(check_dict.values(), index=check_dict.keys())
+      output_df.to_csv(target_file, index=True, header=False, encoding='utf_8_sig')
+
+
+def xlsx_to_lang_csv(file_name : str, output_dir : str) -> None:
+
+  all_trans_data = create_all_trans_dict(file_name)
+
+  is_update = False
 
   for lang, data in all_trans_data.items():
 
@@ -105,8 +144,14 @@ def xlsx_to_lang_csv(file_name : str, output_dir : str):
 
     output_df = pd.DataFrame(data.values(), index=data.keys())
     output_df.to_csv(file, index=True, header=False, encoding='utf_8_sig')
+    is_update = True
 
-if __name__ == "__main__":
+  if not is_update:
+    return
+
+  no_trans_data_to_ja(output_dir)
+
+
+if __name__ == '__main__':
   xlsx_to_json(EXTREMERORLS_IN_FILE, EXTREMERORLS_OUT_FILE)
-  # xlsx_to_json(EXTREMESKIN_IN_FILE, EXTREMESKIN_OUT_FILE)
-  xlsx_to_lang_csv(EXTREMESKIN_IN_FILE, os.path.join(WORKING_DIR, "ExtremeSkins", "Resources", "LangData"))
+  xlsx_to_lang_csv(EXTREMESKIN_IN_FILE, EXTREMESKIN_OUT_FILE)
