@@ -94,11 +94,11 @@ public sealed class CreatorModeManager
 
     private static void tryImportTestTransData(string amongUsPath)
     {
-        if (CreatorMode.IsExistTransFile(amongUsPath))
+		if (CreatorMode.IsExistTransFile(amongUsPath))
         {
 			var transData = new Dictionary<SupportedLangs, Dictionary<string, string>>();
 
-            using StreamReader transCsv = CreatorMode.GetTranslationReader(amongUsPath);
+			using StreamReader transCsv = CreatorMode.GetTranslationReader(amongUsPath);
 
             transCsv.ReadLine(); // verHeader
 
@@ -106,9 +106,6 @@ public sealed class CreatorModeManager
             while ((transInfoLine = transCsv.ReadLine()) != null)
             {
                 string[] transInfo = transInfoLine.Split(',');
-
-                Dictionary<SupportedLangs, string> transData =
-                    new Dictionary<SupportedLangs, string>();
 
                 foreach (var (str, index) in transInfo.Select(
                     (str, index) => (str, index)))
@@ -122,17 +119,12 @@ public sealed class CreatorModeManager
 					langData.Add(transInfo[0], str);
 					transData[key] = langData;
                 }
-
-				/*
-                Helper.Translation.AddKeyTransdata(
-                    transInfo[0], transData);
-				*/
             }
 			ExtremeSkinsTranslator.Instance.CreatorModeTransData = transData;
         }
         else
         {
-            CreatorMode.CreateTranslationWriter(amongUsPath);
+            using var _ = CreatorMode.CreateTranslationWriter(amongUsPath);
         }
     }
 
