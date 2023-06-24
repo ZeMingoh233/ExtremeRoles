@@ -96,6 +96,8 @@ public sealed class CreatorModeManager
     {
         if (CreatorMode.IsExistTransFile(amongUsPath))
         {
+			var transData = new Dictionary<SupportedLangs, Dictionary<string, string>>();
+
             using StreamReader transCsv = CreatorMode.GetTranslationReader(amongUsPath);
 
             transCsv.ReadLine(); // verHeader
@@ -112,7 +114,13 @@ public sealed class CreatorModeManager
                     (str, index) => (str, index)))
                 {
                     if (index == 0 || str == string.Empty) { continue; }
-                    transData.Add((SupportedLangs)(index - 1), str);
+					var key = (SupportedLangs)(index - 1);
+					if (!transData.TryGetValue(key, out var langData))
+					{
+						langData = new Dictionary<string, string>();
+					}
+					langData.Add(transInfo[0], str);
+					transData[key] = langData;
                 }
 
 				/*
@@ -120,6 +128,7 @@ public sealed class CreatorModeManager
                     transInfo[0], transData);
 				*/
             }
+			ExtremeSkinsTranslator.Instance.CreatorModeTransData = transData;
         }
         else
         {
