@@ -1,4 +1,6 @@
-﻿using BepInEx;
+﻿global using ExtremeRoles.Extension.Translation;
+
+using BepInEx;
 using BepInEx.Unity.IL2CPP;
 
 using HarmonyLib;
@@ -26,10 +28,8 @@ public partial class ExtremeSkinsPlugin : BasePlugin
 
     public override void Load()
     {
-        Helper.Translation.LoadTransData();
-
         Logger = Log;
-        
+
         Instance = this;
 
 #if WITHHAT
@@ -51,8 +51,9 @@ public partial class ExtremeSkinsPlugin : BasePlugin
         Harmony.PatchAll();
 
         var assembly = System.Reflection.Assembly.GetAssembly(this.GetType());
-
-        Updater.Instance.AddMod<ExRRepositoryInfo>($"{assembly.GetName().Name}.dll");
+		ExtremeRoles.Module.NewTranslation.TranslatorManager.Register(
+			new ExtremeSkinsTranslator());
+		Updater.Instance.AddMod<ExRRepositoryInfo>($"{assembly.GetName().Name}.dll");
         Il2CppRegisterAttribute.Registration(assembly);
     }
 }
